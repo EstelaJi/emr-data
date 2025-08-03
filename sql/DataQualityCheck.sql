@@ -1,43 +1,43 @@
 -- 可疑文档模式分析（仅分析有文档内容的记录）
 WITH suspicious_analysis AS (
     SELECT 
-        c.caregiver_id,
-        c.first_name || ' ' || c.last_name AS caregiver_name,
+        c."caregiverId",
+        c."firstName" || ' ' || c."lastName" AS caregiver_name,
         c.email,
-        c.phone_number,
+        c."phoneNumber",
         c.status,
-        cl.carelog_id,
+        cl."carelogId",
         
         -- 文档内容
         cl.documentation AS comment_text,
-        cl.general_comment_char_count AS comment_length,
+        cl."generalCommentCharCount" AS comment_length,
         
         -- 时间信息
-        DATE(cl.clock_in_actual_datetime) AS visit_date,
-        cl.clock_in_actual_datetime AS visit_start,
-        cl.clock_out_actual_datetime AS visit_end,
+        DATE(cl."clockInActualDatetime") AS visit_date,
+        cl."clockInActualDatetime" AS visit_start,
+        cl."clockOutActualDatetime" AS visit_end,
         
         -- 访问时长
-        EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/3600 AS visit_duration_hours,
+        EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/3600 AS visit_duration_hours,
         
         -- 可疑模式检测
         CASE 
             WHEN cl.documentation IS NULL OR cl.documentation = ''
             THEN 'MISSING_DOCUMENTATION'
             
-            WHEN cl.general_comment_char_count < 5
+            WHEN cl."generalCommentCharCount" < 5
             THEN 'VERY_SHORT_DOCUMENTATION'
             
-            WHEN cl.general_comment_char_count < 10
+            WHEN cl."generalCommentCharCount" < 10
             THEN 'SHORT_DOCUMENTATION'
             
-            WHEN cl.general_comment_char_count > 1000
+            WHEN cl."generalCommentCharCount" > 1000
             THEN 'EXCESSIVELY_LONG'
             
             WHEN LOWER(cl.documentation) IN ('ok', 'fine', 'good', 'completed', 'done', 'finished')
             THEN 'GENERIC_COMMENT'
             
-            WHEN LENGTH(cl.documentation) > 0 AND cl.general_comment_char_count = 0
+            WHEN LENGTH(cl.documentation) > 0 AND cl."generalCommentCharCount" = 0
             THEN 'LENGTH_MISMATCH'
             
             WHEN cl.documentation LIKE '%copy%' OR cl.documentation LIKE '%paste%'
@@ -57,19 +57,19 @@ WITH suspicious_analysis AS (
             WHEN cl.documentation IS NULL OR cl.documentation = ''
             THEN 10
             
-            WHEN cl.general_comment_char_count < 5
+            WHEN cl."generalCommentCharCount" < 5
             THEN 8
             
-            WHEN cl.general_comment_char_count < 10
+            WHEN cl."generalCommentCharCount" < 10
             THEN 6
             
-            WHEN cl.general_comment_char_count > 1000
+            WHEN cl."generalCommentCharCount" > 1000
             THEN 7
             
             WHEN LOWER(cl.documentation) IN ('ok', 'fine', 'good', 'completed', 'done', 'finished')
             THEN 5
             
-            WHEN LENGTH(cl.documentation) > 0 AND cl.general_comment_char_count = 0
+            WHEN LENGTH(cl.documentation) > 0 AND cl."generalCommentCharCount" = 0
             THEN 9
             
             WHEN cl.documentation LIKE '%copy%' OR cl.documentation LIKE '%paste%'
@@ -88,24 +88,24 @@ WITH suspicious_analysis AS (
         cl.status AS visit_status
         
     FROM 
-        "Caregivers" c
+        "Caregiver" c
     JOIN 
-        "Carelog" cl ON c.caregiver_id = cl.caregiver_id
+        "Carelog" cl ON c."caregiverId" = cl."caregiverId"
     WHERE 
-        cl.clock_in_actual_datetime IS NOT NULL 
-        AND cl.clock_out_actual_datetime IS NOT NULL
-        AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
+        cl."clockInActualDatetime" IS NOT NULL 
+        AND cl."clockOutActualDatetime" IS NOT NULL
+        AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
         AND cl.documentation IS NOT NULL 
         AND cl.documentation != ''
-        AND cl.general_comment_char_count > 0  -- 只分析有实际文档内容的记录
+        AND cl."generalCommentCharCount" > 0  -- 只分析有实际文档内容的记录
 ),
 
 caregiver_suspicious_stats AS (
     SELECT 
-        caregiver_id,
+        "caregiverId",
         caregiver_name,
         email,
-        phone_number,
+        "phoneNumber",
         status,
         
 
@@ -139,16 +139,16 @@ caregiver_suspicious_stats AS (
         
     FROM suspicious_analysis
     
-    GROUP BY caregiver_id, caregiver_name, email, phone_number, status
+    GROUP BY "caregiverId", caregiver_name, email, "phoneNumber", status
     
     HAVING COUNT(*) >= 3 
 )
 
 SELECT 
-    caregiver_id,
+    "caregiverId",
     caregiver_name,
     email,
-    phone_number,
+    "phoneNumber",
     status,
     
 

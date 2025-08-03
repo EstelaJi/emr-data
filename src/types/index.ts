@@ -17,27 +17,47 @@ export interface TransformRule {
   required?: boolean;
 }
 
+// Franchisor interface
+export interface Franchisor {
+  franchisorId: string;
+  name?: string;
+}
+
+// Agency interface
+export interface Agency {
+  agencyId: string;
+  name?: string;
+  franchisorId: string;
+  subdomain?: string;
+}
+
+// Location interface
+export interface Location {
+  locationId: string;
+  locationName: string;
+}
+
+// Updated Caregiver interface with proper foreign key references
 export interface Caregiver {
   caregiverId: string;
   externalId?: string;
   profileId: string;
   franchisorId: string;
   agencyId: string;
-  subdomain: string;
+  locationId?: string;
   firstName: string;
   lastName: string;
-  email?: string;
+  email: string?;
   phoneNumber?: string;
   gender?: string;
   applicant: boolean;
   birthdayDate?: Date | null;
   onboardingDate?: Date | null;
-  locationName?: string;
-  locationsId?: string;
   applicantStatus: string;
   status: string;
 }
 
+// Updated Carelog interface with proper foreign key references
 export interface Carelog {
   carelogId: string;
   caregiverId: string;

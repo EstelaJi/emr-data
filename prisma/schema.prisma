@@ -13,53 +13,106 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Caregivers {
+// Franchisor table to handle franchisor relationships
+model Franchisor {
+  id          String   @id @default(cuid())
+  franchisorId String  @unique
+  name        String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  agencies    Agency[]
+  caregivers  Caregiver[]
+  carelogs    Carelog[]
+}
+
+// Agency table to normalize agency data
+model Agency {
+  id          String   @id @default(cuid())
+  agencyId    String
+  name        String?
+  franchisorId String
+  subdomain   String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  franchisor  Franchisor @relation(fields: [franchisorId], references: [franchisorId])
+  caregivers  Caregiver[]
+  carelogs    Carelog[]
+
+  @@unique([agencyId, franchisorId])
+}
+
+// Location table to normalize location data
+model Location {
+  id          String   @id @default(cuid())
+  locationId  String   @unique
+  locationName String
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  caregivers  Caregiver[]
+}
+
+// Caregiver table with proper foreign key relationships
+model Caregiver {
   id               String    @id @default(cuid())
-  caregiver_id     String    @unique
-  external_id      String?
-  profile_id       String
-  franchisor_id    String
-  agency_id        String
-  subdomain        String?
-  first_name       String
-  last_name        String
-  email            String
-  phone_number     String?
+  caregiverId      String    @unique
+  externalId       String?
+  profileId        String
+  franchisorId     String
+  agencyId         String
+  locationId       String?
+  firstName        String
+  lastName         String
+  email            String?
+  phoneNumber      String?
   gender           String?
   applicant        Boolean
-  birthday_date    DateTime?
-  onboarding_date  DateTime?
-  location_name    String?
-  locations_id     String?
-  applicant_status String
+  birthdayDate     DateTime?
+  onboardingDate   DateTime?
+  applicantStatus  String
   status           String
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
 
-  // Relation to Carelog
-  carelogs Carelog[]
+  // Relations
+  franchisor       Franchisor @relation(fields: [franchisorId], references: [franchisorId])
+  agency           Agency     @relation(fields: [agencyId, franchisorId], references: [agencyId, franchisorId])
+  location         Location?  @relation(fields: [locationId], references: [locationId])
+  carelogs         Carelog[]
+
+  @@unique([caregiverId, franchisorId, agencyId])
 }
 
+// Carelog table with proper foreign key relationships
 model Carelog {
-    id               String    @id @default(cuid())
-  carelog_id                 String    @unique
-  caregiver_id               String
-  franchisor_id              String
-  agency_id                  String
-  parent_id                  String?
-  start_datetime             DateTime?
-  end_datetime               DateTime?
-  clock_in_actual_datetime   DateTime?
-  clock_out_actual_datetime  DateTime?
-  clock_in_method            String?
-  clock_out_method           String?
-  status                     String
-  split                      Boolean
-  documentation              String?
-  general_comment_char_count Int?
-  created_at                 DateTime  @default(now())
-  updated_at                 DateTime  @updatedAt
+  id                      String    @id @default(cuid())
+  carelogId               String    @unique
+  caregiverId             String
+  franchisorId            String
+  agencyId                String
+  parentId                String?
+  startDatetime           DateTime?
+  endDatetime             DateTime?
+  clockInActualDatetime   DateTime?
+  clockOutActualDatetime  DateTime?
+  clockInMethod           String?
+  clockOutMethod          String?
+  status                  String
+  split                   Boolean
+  documentation           String?
+  generalCommentCharCount Int?
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
 
-  // Relation to Caregivers
-  caregiver Caregivers @relation(fields: [caregiver_id], references: [caregiver_id])
+  // Relations
+  caregiver               Caregiver @relation(fields: [caregiverId], references: [caregiverId])
+  franchisor              Franchisor @relation(fields: [franchisorId], references: [franchisorId])
+  agency                  Agency @relation(fields: [agencyId, franchisorId], references: [agencyId, franchisorId])
+
+  @@unique([carelogId, caregiverId, franchisorId, agencyId])
 }

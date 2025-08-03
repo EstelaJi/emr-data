@@ -1,56 +1,56 @@
 
 WITH visit_durations AS (
     SELECT 
-        c.caregiver_id,
-        c.first_name || ' ' || c.last_name AS caregiver_name,
-        cl.carelog_id,
-        cl.start_datetime AS scheduled_start,
-        cl.end_datetime AS scheduled_end,
-        cl.clock_in_actual_datetime AS actual_start,
-        cl.clock_out_actual_datetime AS actual_end,
+        c."caregiverId",
+        c."firstName" || ' ' || c."lastName" AS caregiver_name,
+        cl."carelogId",
+        cl."startDatetime" AS scheduled_start,
+        cl."endDatetime" AS scheduled_end,
+        cl."clockInActualDatetime" AS actual_start,
+        cl."clockOutActualDatetime" AS actual_end,
         
 
         CASE 
-            WHEN cl.clock_in_actual_datetime IS NOT NULL 
-                 AND cl.clock_out_actual_datetime IS NOT NULL
-                 AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
-            THEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/3600
+            WHEN cl."clockInActualDatetime" IS NOT NULL 
+                 AND cl."clockOutActualDatetime" IS NOT NULL
+                 AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
+            THEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/3600
             ELSE NULL 
         END AS actual_duration_hours,
         
 
         CASE 
-            WHEN cl.start_datetime IS NOT NULL 
-                 AND cl.end_datetime IS NOT NULL
-                 AND cl.start_datetime < cl.end_datetime
-            THEN EXTRACT(EPOCH FROM (cl.end_datetime - cl.start_datetime))/3600
+            WHEN cl."startDatetime" IS NOT NULL 
+                 AND cl."endDatetime" IS NOT NULL
+                 AND cl."startDatetime" < cl."endDatetime"
+            THEN EXTRACT(EPOCH FROM (cl."endDatetime" - cl."startDatetime"))/3600
             ELSE NULL 
         END AS scheduled_duration_hours,
         
         -- 数据质量标记
         CASE 
-            WHEN cl.clock_in_actual_datetime IS NULL AND cl.clock_out_actual_datetime IS NULL
+            WHEN cl."clockInActualDatetime" IS NULL AND cl."clockOutActualDatetime" IS NULL
             THEN 'NO_ACTUAL_TIMES'
             
-            WHEN cl.clock_in_actual_datetime IS NULL AND cl.clock_out_actual_datetime IS NOT NULL
+            WHEN cl."clockInActualDatetime" IS NULL AND cl."clockOutActualDatetime" IS NOT NULL
             THEN 'MISSING_CLOCK_IN'
             
-            WHEN cl.clock_in_actual_datetime IS NOT NULL AND cl.clock_out_actual_datetime IS NULL
+            WHEN cl."clockInActualDatetime" IS NOT NULL AND cl."clockOutActualDatetime" IS NULL
             THEN 'MISSING_CLOCK_OUT'
             
-            WHEN cl.clock_in_actual_datetime IS NOT NULL 
-                 AND cl.clock_out_actual_datetime IS NOT NULL
-                 AND cl.clock_in_actual_datetime >= cl.clock_out_actual_datetime
+            WHEN cl."clockInActualDatetime" IS NOT NULL 
+                 AND cl."clockOutActualDatetime" IS NOT NULL
+                 AND cl."clockInActualDatetime" >= cl."clockOutActualDatetime"
             THEN 'INVALID_DURATION'
             
-            WHEN cl.clock_in_actual_datetime IS NOT NULL 
-                 AND cl.clock_out_actual_datetime IS NOT NULL
-                 AND EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/3600 > 24
+            WHEN cl."clockInActualDatetime" IS NOT NULL 
+                 AND cl."clockOutActualDatetime" IS NOT NULL
+                 AND EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/3600 > 24
             THEN 'EXCESSIVE_DURATION'
             
-            WHEN cl.clock_in_actual_datetime IS NOT NULL 
-                 AND cl.clock_out_actual_datetime IS NOT NULL
-                 AND EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/3600 < 0.1
+            WHEN cl."clockInActualDatetime" IS NOT NULL 
+                 AND cl."clockOutActualDatetime" IS NOT NULL
+                 AND EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/3600 < 0.1
             THEN 'TOO_SHORT_DURATION'
             
             ELSE 'VALID_DURATION'
@@ -58,28 +58,28 @@ WITH visit_durations AS (
         
 
         CASE 
-            WHEN cl.clock_in_actual_datetime IS NOT NULL 
-                 AND cl.clock_out_actual_datetime IS NOT NULL
-                 AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
-                 AND cl.start_datetime IS NOT NULL 
-                 AND cl.end_datetime IS NOT NULL
-                 AND cl.start_datetime < cl.end_datetime
-            THEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/3600 - 
-                 EXTRACT(EPOCH FROM (cl.end_datetime - cl.start_datetime))/3600
+            WHEN cl."clockInActualDatetime" IS NOT NULL 
+                 AND cl."clockOutActualDatetime" IS NOT NULL
+                 AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
+                 AND cl."startDatetime" IS NOT NULL 
+                 AND cl."endDatetime" IS NOT NULL
+                 AND cl."startDatetime" < cl."endDatetime"
+            THEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/3600 - 
+                 EXTRACT(EPOCH FROM (cl."endDatetime" - cl."startDatetime"))/3600
             ELSE NULL 
         END AS duration_difference_hours
         
     FROM 
-        "Caregivers" c
+        "Caregiver" c
     JOIN 
-        "Carelog" cl ON c.caregiver_id = cl.caregiver_id
+        "Carelog" cl ON c."caregiverId" = cl."caregiverId"
     WHERE 
 
-        (cl.clock_in_actual_datetime IS NOT NULL OR cl.clock_out_actual_datetime IS NOT NULL)
+        (cl."clockInActualDatetime" IS NOT NULL OR cl."clockOutActualDatetime" IS NOT NULL)
 )
 
 SELECT 
-    caregiver_id,
+    "caregiverId",
     caregiver_name,
     
     COUNT(*) AS total_visits,
@@ -124,7 +124,7 @@ SELECT
 FROM visit_durations
 
 GROUP BY 
-    caregiver_id, caregiver_name
+    "caregiverId", caregiver_name
 
 HAVING 
     COUNT(*) >= 3 

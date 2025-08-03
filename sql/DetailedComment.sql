@@ -1,43 +1,43 @@
 
 WITH detailed_comments AS (
     SELECT 
-        c.caregiver_id,
-        c.first_name || ' ' || c.last_name AS caregiver_name,
+        c."caregiverId",
+        c."firstName" || ' ' || c."lastName" AS caregiver_name,
         c.email,
-        c.phone_number,
+        c."phoneNumber",
         c.status,
-        cl.carelog_id,
+        cl."carelogId",
         
 
         cl.documentation AS comment_text,
-        cl.general_comment_char_count AS comment_length,
+        cl."generalCommentCharCount" AS comment_length,
         
 
-        DATE(cl.clock_in_actual_datetime) AS visit_date,
-        cl.clock_in_actual_datetime AS visit_start,
-        cl.clock_out_actual_datetime AS visit_end,
+        DATE(cl."clockInActualDatetime") AS visit_date,
+        cl."clockInActualDatetime" AS visit_start,
+        cl."clockOutActualDatetime" AS visit_end,
         
 
-        EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/3600 AS visit_duration_hours,
+        EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/3600 AS visit_duration_hours,
         
 
         CASE 
             WHEN cl.documentation IS NULL OR cl.documentation = ''
             THEN 'NO_COMMENT'
             
-            WHEN cl.general_comment_char_count IS NULL OR cl.general_comment_char_count = 0
+            WHEN cl."generalCommentCharCount" IS NULL OR cl."generalCommentCharCount" = 0
             THEN 'NO_COMMENT'
             
-            WHEN cl.general_comment_char_count < 10
+            WHEN cl."generalCommentCharCount" < 10
             THEN 'VERY_SHORT'
             
-            WHEN cl.general_comment_char_count < 50
+            WHEN cl."generalCommentCharCount" < 50
             THEN 'SHORT'
             
-            WHEN cl.general_comment_char_count < 100
+            WHEN cl."generalCommentCharCount" < 100
             THEN 'MEDIUM'
             
-            WHEN cl.general_comment_char_count < 200
+            WHEN cl."generalCommentCharCount" < 200
             THEN 'LONG'
             
             ELSE 'VERY_LONG'
@@ -48,19 +48,19 @@ WITH detailed_comments AS (
             WHEN cl.documentation IS NULL OR cl.documentation = ''
             THEN 0
             
-            WHEN cl.general_comment_char_count IS NULL OR cl.general_comment_char_count = 0
+            WHEN cl."generalCommentCharCount" IS NULL OR cl."generalCommentCharCount" = 0
             THEN 0
             
-            WHEN cl.general_comment_char_count < 10
+            WHEN cl."generalCommentCharCount" < 10
             THEN 1
             
-            WHEN cl.general_comment_char_count < 50
+            WHEN cl."generalCommentCharCount" < 50
             THEN 2
             
-            WHEN cl.general_comment_char_count < 100
+            WHEN cl."generalCommentCharCount" < 100
             THEN 3
             
-            WHEN cl.general_comment_char_count < 200
+            WHEN cl."generalCommentCharCount" < 200
             THEN 4
             
             ELSE 5
@@ -75,8 +75,8 @@ WITH detailed_comments AS (
         
 
         CASE 
-            WHEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/3600 > 0
-            THEN ROUND(cl.general_comment_char_count / (EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/3600), 2)
+            WHEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/3600 > 0
+            THEN ROUND(cl."generalCommentCharCount" / (EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/3600), 2)
             ELSE NULL 
         END AS chars_per_hour,
         
@@ -85,35 +85,35 @@ WITH detailed_comments AS (
         
 
         CASE 
-            WHEN DATE(cl.clock_in_actual_datetime) != DATE(cl.clock_out_actual_datetime)
+            WHEN DATE(cl."clockInActualDatetime") != DATE(cl."clockOutActualDatetime")
             THEN TRUE ELSE FALSE 
         END AS overnight_shift,
         
 
         CASE 
-            WHEN EXTRACT(DOW FROM cl.clock_in_actual_datetime) IN (0, 6)
+            WHEN EXTRACT(DOW FROM cl."clockInActualDatetime") IN (0, 6)
             THEN TRUE ELSE FALSE 
         END AS weekend_shift
         
     FROM 
-        "Caregivers" c
+        "Caregiver" c
     JOIN 
-        "Carelog" cl ON c.caregiver_id = cl.caregiver_id
+        "Carelog" cl ON c."caregiverId" = cl."caregiverId"
     WHERE 
-        cl.clock_in_actual_datetime IS NOT NULL 
-        AND cl.clock_out_actual_datetime IS NOT NULL
-        AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
+        cl."clockInActualDatetime" IS NOT NULL 
+        AND cl."clockOutActualDatetime" IS NOT NULL
+        AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
         AND cl.documentation IS NOT NULL 
         AND cl.documentation != ''
-        AND cl.general_comment_char_count > 0 
+        AND cl."generalCommentCharCount" > 0 
 ),
 
 caregiver_detailed_stats AS (
     SELECT 
-        caregiver_id,
+        "caregiverId",
         caregiver_name,
         email,
-        phone_number,
+        "phoneNumber",
         status,
     
         COUNT(*) AS total_commented_visits,
@@ -155,10 +155,10 @@ caregiver_detailed_stats AS (
         
 
         ROUND(
-            (COUNT(CASE WHEN comment_category IN ('LONG', 'VERY_LONG') THEN 1 END) * 2) +
-            (COUNT(CASE WHEN comment_category = 'MEDIUM' THEN 1 END) * 1.5) +
-            (COUNT(CASE WHEN comment_category = 'SHORT' THEN 1 END) * 1) +
-            (COUNT(CASE WHEN comment_category = 'VERY_SHORT' THEN 1 END) * 0.5)
+            (COUNT(CASE WHEN comment_category = 'VERY_LONG' THEN 1 END) * 2) +
+            (COUNT(CASE WHEN comment_category = 'LONG' THEN 1 END) * 1.5) +
+            (COUNT(CASE WHEN comment_category = 'MEDIUM' THEN 1 END) * 1) +
+            (COUNT(CASE WHEN comment_category = 'SHORT' THEN 1 END) * 0.5)
             / COUNT(*), 2
         ) AS comment_consistency_score,
         
@@ -176,15 +176,15 @@ caregiver_detailed_stats AS (
         
     FROM detailed_comments
     
-    GROUP BY caregiver_id, caregiver_name, email, phone_number, status
+    GROUP BY "caregiverId", caregiver_name, email, "phoneNumber", status
     
     HAVING COUNT(*) >= 3  )
 
 SELECT 
-    caregiver_id,
+    "caregiverId",
     caregiver_name,
     email,
-    phone_number,
+    "phoneNumber",
     status,
   
     total_commented_visits,

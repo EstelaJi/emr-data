@@ -1,4 +1,4 @@
-import { Caregiver, Carelog, CSVRow, TransformRule } from "../types";
+import { Agency, Caregiver, Carelog, CSVRow, Franchisor, Location, TransformRule } from "../types";
 import { logger } from "../utils/logger";
 
 export class DataTransformer {
@@ -23,6 +23,66 @@ export class DataTransformer {
     return data.map((row) => this.transformData(row, rules));
   }
 
+  // Extract unique franchisors from caregiver data
+  static extractFranchisors(data: CSVRow[]): Franchisor[] {
+    const franchisorMap = new Map<string, Franchisor>();
+    
+    data.forEach(row => {
+      const franchisorId = String(row.franchisor_id || "");
+      if (franchisorId && !franchisorMap.has(franchisorId)) {
+        franchisorMap.set(franchisorId, {
+          franchisorId,
+          name: String(row.franchisor_name || "")
+        });
+      }
+    });
+    
+    return Array.from(franchisorMap.values());
+  }
+
+  // Extract unique agencies from caregiver data
+  static extractAgencies(data: CSVRow[]): Agency[] {
+    const agencyMap = new Map<string, Agency>();
+    
+    data.forEach(row => {
+      const agencyId = String(row.agency_id || "");
+      const franchisorId = String(row.franchisor_id || "");
+      
+      if (agencyId && franchisorId) {
+        const key = `${agencyId}-${franchisorId}`;
+        if (!agencyMap.has(key)) {
+          agencyMap.set(key, {
+            agencyId,
+            name: String(row.agency_name || ""),
+            franchisorId,
+            subdomain: String(row.subdomain || "")
+          });
+        }
+      }
+    });
+    
+    return Array.from(agencyMap.values());
+  }
+
+  // Extract unique locations from caregiver data
+  static extractLocations(data: CSVRow[]): Location[] {
+    const locationMap = new Map<string, Location>();
+    
+    data.forEach(row => {
+      const locationId = String(row.locations_id || "");
+      const locationName = String(row.location_name || "");
+      
+      if (locationId && locationName && !locationMap.has(locationId)) {
+        locationMap.set(locationId, {
+          locationId,
+          locationName
+        });
+      }
+    });
+    
+    return Array.from(locationMap.values());
+  }
+
   static toCaregiverData(row: CSVRow): Caregiver {
     const rules = this.getCaregiverTransformRules();
     const transformedData = this.transformData(row, rules);
@@ -32,7 +92,7 @@ export class DataTransformer {
       profileId: transformedData.profile_id as string,
       franchisorId: transformedData.franchisor_id as string,
       agencyId: transformedData.agency_id as string,
-      subdomain: transformedData.subdomain as string,
+      locationId: transformedData.locations_id as string,
       firstName: transformedData.first_name as string,
       lastName: transformedData.last_name as string,
       email: transformedData.email as string,
@@ -41,8 +101,6 @@ export class DataTransformer {
       applicant: transformedData.applicant as boolean,
       birthdayDate: transformedData.birthday_date as Date | null,
       onboardingDate: transformedData.onboarding_date as Date | null,
-      locationName: transformedData.location_name as string,
-      locationsId: transformedData.locations_id as string,
       applicantStatus: transformedData.applicant_status as string,
       status: transformedData.status as string,
     };
@@ -73,7 +131,28 @@ export class DataTransformer {
   }
 
   static transformCaregivers(data: CSVRow[]): Caregiver[] {
-    return data.map((row) => this.toCaregiverData(row));
+    const results: Caregiver[] = [];
+    const invalidRows: { index: number; row: CSVRow; error: string }[] = [];
+    
+    data.forEach((row, index) => {
+      try {
+        const caregiver = this.toCaregiverData(row);
+        if (caregiver) {
+          results.push(caregiver);
+        } else {
+          invalidRows.push({ index, row, error: 'Transformation returned null' });
+        }
+      } catch (error) {
+        invalidRows.push({ index, row, error: error instanceof Error ? error.message : String(error) });
+      }
+    });
+    
+    if (invalidRows.length > 0) {
+      console.log(`⚠️ DataTransformer: ${invalidRows.length} invalid rows out of ${data.length} total rows`);
+      console.log(`⚠️ Sample invalid rows:`, invalidRows.slice(0, 3));
+    }
+    
+    return results;
   }
 
   static transformCarelogs(data: CSVRow[]): Carelog[] {
@@ -91,11 +170,6 @@ export class DataTransformer {
         field: "agency_id",
         transform: (value: any) => String(value || ""),
         required: true,
-      },
-      {
-        field: "subdomain",
-        transform: (value: any) => String(value || ""),
-        required: false,
       },
       {
         field: "profile_id",
@@ -124,8 +198,13 @@ export class DataTransformer {
       },
       {
         field: "email",
-        transform: (value: any) => String(value || ""),
-        required: true,
+        transform: (value: any) => {
+          if (!value || value.trim() === '') {
+            return `no-email-${Date.now()}-${Math.random().toString(36).substr(2, 9)}@placeholder.com`;
+          }
+          return String(value);
+        },
+        required: false,
       },
       {
         field: "phone_number",
@@ -170,11 +249,6 @@ export class DataTransformer {
             return null;
           }
         },
-        required: false,
-      },
-      {
-        field: "location_name",
-        transform: (value: any) => String(value || ""),
         required: false,
       },
       {

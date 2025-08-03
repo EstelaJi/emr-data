@@ -6,7 +6,7 @@ async function main() {
     batchSize: 5000,
     maxConcurrency: 3,
     enableTransactions: true,
-    skipDuplicates: true,
+    skipDuplicates: false, // Temporarily disable to test
     enableParallelProcessing: true,
     enableProgressTracking: true,
   });

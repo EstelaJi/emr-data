@@ -1,81 +1,81 @@
 -- 识别经常产生加班时间的护理人员
 WITH overtime_visits AS (
     SELECT 
-        c.caregiver_id,
-        c.first_name || ' ' || c.last_name AS caregiver_name,
+        c."caregiverId",
+        c."firstName" || ' ' || c."lastName" AS caregiver_name,
         c.email,
-        c.phone_number,
+        c."phoneNumber",
         c.status,
-        cl.carelog_id,
-        cl.start_datetime AS scheduled_start,
-        cl.end_datetime AS scheduled_end,
-        cl.clock_in_actual_datetime AS actual_start,
-        cl.clock_out_actual_datetime AS actual_end,
+        cl."carelogId",
+        cl."startDatetime" AS scheduled_start,
+        cl."endDatetime" AS scheduled_end,
+        cl."clockInActualDatetime" AS actual_start,
+        cl."clockOutActualDatetime" AS actual_end,
        
         CASE 
-            WHEN cl.start_datetime IS NOT NULL AND cl.end_datetime IS NOT NULL
-            THEN EXTRACT(EPOCH FROM (cl.end_datetime - cl.start_datetime))/3600
+            WHEN cl."startDatetime" IS NOT NULL AND cl."endDatetime" IS NOT NULL
+            THEN EXTRACT(EPOCH FROM (cl."endDatetime" - cl."startDatetime"))/3600
             ELSE NULL 
         END AS scheduled_hours,
         
 
         CASE 
-            WHEN cl.clock_in_actual_datetime IS NOT NULL 
-                 AND cl.clock_out_actual_datetime IS NOT NULL
-                 AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
-            THEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/3600
+            WHEN cl."clockInActualDatetime" IS NOT NULL 
+                 AND cl."clockOutActualDatetime" IS NOT NULL
+                 AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
+            THEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/3600
             ELSE NULL 
         END AS actual_hours,
         
 
         CASE 
-            WHEN cl.start_datetime IS NOT NULL AND cl.end_datetime IS NOT NULL
-                 AND cl.clock_in_actual_datetime IS NOT NULL 
-                 AND cl.clock_out_actual_datetime IS NOT NULL
-                 AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
-            THEN GREATEST(0, EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/3600 - 
-                              EXTRACT(EPOCH FROM (cl.end_datetime - cl.start_datetime))/3600)
+            WHEN cl."startDatetime" IS NOT NULL AND cl."endDatetime" IS NOT NULL
+                 AND cl."clockInActualDatetime" IS NOT NULL 
+                 AND cl."clockOutActualDatetime" IS NOT NULL
+                 AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
+            THEN GREATEST(0, EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/3600 - 
+                              EXTRACT(EPOCH FROM (cl."endDatetime" - cl."startDatetime"))/3600)
             ELSE NULL 
         END AS overtime_hours,
         
         -- 加班百分比
         CASE 
-            WHEN cl.start_datetime IS NOT NULL AND cl.end_datetime IS NOT NULL
-                 AND cl.clock_in_actual_datetime IS NOT NULL 
-                 AND cl.clock_out_actual_datetime IS NOT NULL
-                 AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
-                 AND EXTRACT(EPOCH FROM (cl.end_datetime - cl.start_datetime))/3600 > 0
-            THEN ROUND(100.0 * GREATEST(0, EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/3600 - 
-                                              EXTRACT(EPOCH FROM (cl.end_datetime - cl.start_datetime))/3600) / 
-                       EXTRACT(EPOCH FROM (cl.end_datetime - cl.start_datetime))/3600, 2)
+            WHEN cl."startDatetime" IS NOT NULL AND cl."endDatetime" IS NOT NULL
+                 AND cl."clockInActualDatetime" IS NOT NULL 
+                 AND cl."clockOutActualDatetime" IS NOT NULL
+                 AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
+                 AND EXTRACT(EPOCH FROM (cl."endDatetime" - cl."startDatetime"))/3600 > 0
+            THEN ROUND(100.0 * GREATEST(0, EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/3600 - 
+                                              EXTRACT(EPOCH FROM (cl."endDatetime" - cl."startDatetime"))/3600) / 
+                       EXTRACT(EPOCH FROM (cl."endDatetime" - cl."startDatetime"))/3600, 2)
             ELSE NULL 
         END AS overtime_percentage,
         
 
-        DATE(cl.clock_in_actual_datetime) AS visit_date,
+        DATE(cl."clockInActualDatetime") AS visit_date,
         
 
-        DATE_TRUNC('month', cl.clock_in_actual_datetime) AS visit_month
+        DATE_TRUNC('month', cl."clockInActualDatetime") AS visit_month
         
     FROM 
-        "Caregivers" c
+        "Caregiver" c
     JOIN 
-        "Carelog" cl ON c.caregiver_id = cl.caregiver_id
+        "Carelog" cl ON c."caregiverId" = cl."caregiverId"
     WHERE 
-        cl.clock_in_actual_datetime IS NOT NULL 
-        AND cl.clock_out_actual_datetime IS NOT NULL
-        AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
-        AND cl.start_datetime IS NOT NULL 
-        AND cl.end_datetime IS NOT NULL
-        AND cl.start_datetime < cl.end_datetime
+        cl."clockInActualDatetime" IS NOT NULL 
+        AND cl."clockOutActualDatetime" IS NOT NULL
+        AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
+        AND cl."startDatetime" IS NOT NULL 
+        AND cl."endDatetime" IS NOT NULL
+        AND cl."startDatetime" < cl."endDatetime"
 ),
 
 caregiver_overtime_stats AS (
     SELECT 
-        caregiver_id,
+        "caregiverId",
         caregiver_name,
         email,
-        phone_number,
+        "phoneNumber",
         status,
         
 
@@ -116,16 +116,16 @@ caregiver_overtime_stats AS (
     FROM overtime_visits
     
     GROUP BY 
-        caregiver_id, caregiver_name, email, phone_number, status
+        "caregiverId", caregiver_name, email, "phoneNumber", status
     
     HAVING 
         COUNT(*) >= 5 )
 
 SELECT 
-    caregiver_id,
+    "caregiverId",
     caregiver_name,
     email,
-    phone_number,
+    "phoneNumber",
     status,
     
 

@@ -3,99 +3,99 @@ WITH visit_stats AS (
 
     SELECT 
         AVG(CASE 
-            WHEN cl.clock_in_actual_datetime IS NOT NULL 
-                 AND cl.clock_out_actual_datetime IS NOT NULL
-                 AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
-                 AND EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 BETWEEN 15 AND 1440
-            THEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60
+            WHEN cl."clockInActualDatetime" IS NOT NULL 
+                 AND cl."clockOutActualDatetime" IS NOT NULL
+                 AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
+                 AND EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 BETWEEN 15 AND 1440
+            THEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60
             ELSE NULL 
         END) AS overall_avg_duration_minutes,
         
         STDDEV(CASE 
-            WHEN cl.clock_in_actual_datetime IS NOT NULL 
-                 AND cl.clock_out_actual_datetime IS NOT NULL
-                 AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
-                 AND EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 BETWEEN 15 AND 1440
-            THEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60
+            WHEN cl."clockInActualDatetime" IS NOT NULL 
+                 AND cl."clockOutActualDatetime" IS NOT NULL
+                 AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
+                 AND EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 BETWEEN 15 AND 1440
+            THEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60
             ELSE NULL 
         END) AS overall_stddev_duration_minutes,
         
         PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY 
             CASE 
-                WHEN cl.clock_in_actual_datetime IS NOT NULL 
-                     AND cl.clock_out_actual_datetime IS NOT NULL
-                     AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
-                     AND EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 BETWEEN 15 AND 1440
-                THEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60
+                WHEN cl."clockInActualDatetime" IS NOT NULL 
+                     AND cl."clockOutActualDatetime" IS NOT NULL
+                     AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
+                     AND EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 BETWEEN 15 AND 1440
+                THEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60
                 ELSE NULL 
             END) AS q1_duration_minutes,
         
         PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY 
             CASE 
-                WHEN cl.clock_in_actual_datetime IS NOT NULL 
-                     AND cl.clock_out_actual_datetime IS NOT NULL
-                     AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
-                     AND EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 BETWEEN 15 AND 1440
-                THEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60
+                WHEN cl."clockInActualDatetime" IS NOT NULL 
+                     AND cl."clockOutActualDatetime" IS NOT NULL
+                     AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
+                     AND EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 BETWEEN 15 AND 1440
+                THEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60
                 ELSE NULL 
             END) AS q3_duration_minutes
         
     FROM "Carelog" cl
-    WHERE cl.clock_in_actual_datetime IS NOT NULL 
-          AND cl.clock_out_actual_datetime IS NOT NULL
+    WHERE cl."clockInActualDatetime" IS NOT NULL 
+          AND cl."clockOutActualDatetime" IS NOT NULL
 ),
 
 atypical_visits AS (
     SELECT 
-        c.caregiver_id,
-        c.first_name || ' ' || c.last_name AS caregiver_name,
+        c."caregiverId",
+        c."firstName" || ' ' || c."lastName" AS caregiver_name,
         c.email,
-        c.phone_number,
-        cl.carelog_id,
-        cl.start_datetime AS scheduled_start,
-        cl.end_datetime AS scheduled_end,
-        cl.clock_in_actual_datetime AS actual_start,
-        cl.clock_out_actual_datetime AS actual_end,
+        c."phoneNumber",
+        cl."carelogId",
+        cl."startDatetime" AS scheduled_start,
+        cl."endDatetime" AS scheduled_end,
+        cl."clockInActualDatetime" AS actual_start,
+        cl."clockOutActualDatetime" AS actual_end,
         
 
-        EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 AS actual_duration_minutes,
+        EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 AS actual_duration_minutes,
         
 
         CASE 
-            WHEN cl.start_datetime IS NOT NULL AND cl.end_datetime IS NOT NULL
-            THEN EXTRACT(EPOCH FROM (cl.end_datetime - cl.start_datetime))/60
+            WHEN cl."startDatetime" IS NOT NULL AND cl."endDatetime" IS NOT NULL
+            THEN EXTRACT(EPOCH FROM (cl."endDatetime" - cl."startDatetime"))/60
             ELSE NULL 
         END AS scheduled_duration_minutes,
         
 
         CASE 
-            WHEN cl.start_datetime IS NOT NULL AND cl.end_datetime IS NOT NULL
-            THEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 - 
-                 EXTRACT(EPOCH FROM (cl.end_datetime - cl.start_datetime))/60
+            WHEN cl."startDatetime" IS NOT NULL AND cl."endDatetime" IS NOT NULL
+            THEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 - 
+                 EXTRACT(EPOCH FROM (cl."endDatetime" - cl."startDatetime"))/60
             ELSE NULL 
         END AS duration_difference_minutes,
         
 
         CASE 
-            WHEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 < 15
+            WHEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 < 15
             THEN 'EXTREMELY_SHORT'
             
-            WHEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 > 1440
+            WHEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 > 1440
             THEN 'EXTREMELY_LONG'
             
-            WHEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 < 
+            WHEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 < 
                  (SELECT q1_duration_minutes - 1.5 * (q3_duration_minutes - q1_duration_minutes) FROM visit_stats)
             THEN 'STATISTICALLY_SHORT'
             
-            WHEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 > 
+            WHEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 > 
                  (SELECT q3_duration_minutes + 1.5 * (q3_duration_minutes - q1_duration_minutes) FROM visit_stats)
             THEN 'STATISTICALLY_LONG'
             
-            WHEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 < 
+            WHEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 < 
                  (SELECT overall_avg_duration_minutes - 2 * overall_stddev_duration_minutes FROM visit_stats)
             THEN 'SIGNIFICANTLY_SHORT'
             
-            WHEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 > 
+            WHEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 > 
                  (SELECT overall_avg_duration_minutes + 2 * overall_stddev_duration_minutes FROM visit_stats)
             THEN 'SIGNIFICANTLY_LONG'
             
@@ -104,19 +104,19 @@ atypical_visits AS (
         
 
         CASE 
-            WHEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 < 15
-                 OR EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 > 1440
+            WHEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 < 15
+                 OR EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 > 1440
             THEN 'CRITICAL'
             
-            WHEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 < 
+            WHEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 < 
                  (SELECT q1_duration_minutes - 1.5 * (q3_duration_minutes - q1_duration_minutes) FROM visit_stats)
-                 OR EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 > 
+                 OR EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 > 
                     (SELECT q3_duration_minutes + 1.5 * (q3_duration_minutes - q1_duration_minutes) FROM visit_stats)
             THEN 'HIGH'
             
-            WHEN EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 < 
+            WHEN EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 < 
                  (SELECT overall_avg_duration_minutes - 2 * overall_stddev_duration_minutes FROM visit_stats)
-                 OR EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 > 
+                 OR EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 > 
                     (SELECT overall_avg_duration_minutes + 2 * overall_stddev_duration_minutes FROM visit_stats)
             THEN 'MEDIUM'
             
@@ -126,28 +126,28 @@ atypical_visits AS (
 
         CASE 
             WHEN (SELECT overall_stddev_duration_minutes FROM visit_stats) > 0
-            THEN ABS(EXTRACT(EPOCH FROM (cl.clock_out_actual_datetime - cl.clock_in_actual_datetime))/60 - 
+            THEN ABS(EXTRACT(EPOCH FROM (cl."clockOutActualDatetime" - cl."clockInActualDatetime"))/60 - 
                     (SELECT overall_avg_duration_minutes FROM visit_stats)) / 
                    (SELECT overall_stddev_duration_minutes FROM visit_stats)
             ELSE NULL 
         END AS z_score
         
     FROM 
-        "Caregivers" c
+        "Caregiver" c
     JOIN 
-        "Carelog" cl ON c.caregiver_id = cl.caregiver_id
+        "Carelog" cl ON c."caregiverId" = cl."caregiverId"
     WHERE 
-        cl.clock_in_actual_datetime IS NOT NULL 
-        AND cl.clock_out_actual_datetime IS NOT NULL
-        AND cl.clock_in_actual_datetime < cl.clock_out_actual_datetime
+        cl."clockInActualDatetime" IS NOT NULL 
+        AND cl."clockOutActualDatetime" IS NOT NULL
+        AND cl."clockInActualDatetime" < cl."clockOutActualDatetime"
 )
 
 SELECT 
-    caregiver_id,
+    "caregiverId",
     caregiver_name,
     email,
-    phone_number,
-    carelog_id,
+    "phoneNumber",
+    "carelogId",
     scheduled_start,
     scheduled_end,
     actual_start,
