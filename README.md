@@ -14,4 +14,5 @@
 
 ## Sql files are in the sql folder and include the output screenshots;
 
-## Put the csv files under directory data
+## Put the csv files under directory 
+    data
