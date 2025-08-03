@@ -4,11 +4,16 @@ import { logger } from "./utils/logger";
 async function main() {
   const etlService = new OptimizedETLService({
     batchSize: 5000,
-    maxConcurrency: 3,
-    enableTransactions: true,
-    skipDuplicates: false, // Temporarily disable to test
-    enableParallelProcessing: true,
+    maxConcurrency: 2,
+    enableTransactions: false,
+    skipDuplicates: true,
+    enableParallelProcessing: false,
     enableProgressTracking: true,
+    deadlockRetryConfig: {
+      maxRetries: 3,
+      baseDelayMs: 1000,
+      maxDelayMs: 10000,
+    },
   });
 
   try {

@@ -113,6 +113,4 @@ model Carelog {
   caregiver               Caregiver @relation(fields: [caregiverId], references: [caregiverId])
   franchisor              Franchisor @relation(fields: [franchisorId], references: [franchisorId])
   agency                  Agency @relation(fields: [agencyId, franchisorId], references: [agencyId, franchisorId])
-
-  @@unique([carelogId, caregiverId, franchisorId, agencyId])
 }

@@ -44,7 +44,7 @@ CREATE TABLE "Caregiver" (
     "locationId" TEXT,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
+    "email" TEXT,
     "phoneNumber" TEXT,
     "gender" TEXT,
     "applicant" BOOLEAN NOT NULL,
@@ -86,9 +86,6 @@ CREATE TABLE "Carelog" (
 CREATE UNIQUE INDEX "Franchisor_franchisorId_key" ON "Franchisor"("franchisorId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Agency_agencyId_key" ON "Agency"("agencyId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Agency_agencyId_franchisorId_key" ON "Agency"("agencyId", "franchisorId");
 
 -- CreateIndex
@@ -103,9 +100,6 @@ CREATE UNIQUE INDEX "Caregiver_caregiverId_franchisorId_agencyId_key" ON "Caregi
 -- CreateIndex
 CREATE UNIQUE INDEX "Carelog_carelogId_key" ON "Carelog"("carelogId");
 
--- CreateIndex
-CREATE UNIQUE INDEX "Carelog_carelogId_caregiverId_franchisorId_agencyId_key" ON "Carelog"("carelogId", "caregiverId", "franchisorId", "agencyId");
-
 -- AddForeignKey
 ALTER TABLE "Agency" ADD CONSTRAINT "Agency_franchisorId_fkey" FOREIGN KEY ("franchisorId") REFERENCES "Franchisor"("franchisorId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -113,7 +107,7 @@ ALTER TABLE "Agency" ADD CONSTRAINT "Agency_franchisorId_fkey" FOREIGN KEY ("fra
 ALTER TABLE "Caregiver" ADD CONSTRAINT "Caregiver_franchisorId_fkey" FOREIGN KEY ("franchisorId") REFERENCES "Franchisor"("franchisorId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Caregiver" ADD CONSTRAINT "Caregiver_agencyId_fkey" FOREIGN KEY ("agencyId") REFERENCES "Agency"("agencyId") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Caregiver" ADD CONSTRAINT "Caregiver_agencyId_franchisorId_fkey" FOREIGN KEY ("agencyId", "franchisorId") REFERENCES "Agency"("agencyId", "franchisorId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Caregiver" ADD CONSTRAINT "Caregiver_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("locationId") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -125,4 +119,4 @@ ALTER TABLE "Carelog" ADD CONSTRAINT "Carelog_caregiverId_fkey" FOREIGN KEY ("ca
 ALTER TABLE "Carelog" ADD CONSTRAINT "Carelog_franchisorId_fkey" FOREIGN KEY ("franchisorId") REFERENCES "Franchisor"("franchisorId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Carelog" ADD CONSTRAINT "Carelog_agencyId_fkey" FOREIGN KEY ("agencyId") REFERENCES "Agency"("agencyId") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Carelog" ADD CONSTRAINT "Carelog_agencyId_franchisorId_fkey" FOREIGN KEY ("agencyId", "franchisorId") REFERENCES "Agency"("agencyId", "franchisorId") ON DELETE RESTRICT ON UPDATE CASCADE;
