@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Caregivers {
+  id               String    @id @default(cuid())
+  caregiver_id     String    @unique
+  external_id      String?
+  profile_id       String
+  franchisor_id    String
+  agency_id        String
+  subdomain        String?
+  first_name       String
+  last_name        String
+  email            String
+  phone_number     String?
+  gender           String?
+  applicant        Boolean
+  birthday_date    DateTime?
+  onboarding_date  DateTime?
+  location_name    String?
+  locations_id     String?
+  applicant_status String
+  status           String
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  // Relation to Carelog
+  carelogs Carelog[]
+}
+
+model Carelog {
+    id               String    @id @default(cuid())
+  carelog_id                 String    @unique
+  caregiver_id               String
+  franchisor_id              String
+  agency_id                  String
+  parent_id                  String?
+  start_datetime             DateTime?
+  end_datetime               DateTime?
+  clock_in_actual_datetime   DateTime?
+  clock_out_actual_datetime  DateTime?
+  clock_in_method            String?
+  clock_out_method           String?
+  status                     String
+  split                      Boolean
+  documentation              String?
+  general_comment_char_count Int?
+  created_at                 DateTime  @default(now())
+  updated_at                 DateTime  @updatedAt
+
+  // Relation to Caregivers
+  caregiver Caregivers @relation(fields: [caregiver_id], references: [caregiver_id])
+}
