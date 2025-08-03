@@ -94,6 +94,7 @@ export class BatchProcessor extends EventEmitter {
     return new Promise((resolve, reject) => {
       let currentBatch: CSVRow[] = [];
       let activePromises = 0;
+      let batchQueue: CSVRow[][] = [];
 
       const processBatch = async (batch: CSVRow[]) => {
         try {
@@ -199,6 +200,16 @@ export class BatchProcessor extends EventEmitter {
           logger.warn(`⚠️ Continuing with next batch despite failure in batch ${batchesProcessed + 1}`);
         } finally {
           activePromises--;
+          
+          // 处理队列中的批次
+          if (batchQueue.length > 0 && activePromises < this.config.maxConcurrency) {
+            const nextBatch = batchQueue.shift();
+            if (nextBatch) {
+              activePromises++;
+              logger.info(`📊 Processing queued batch (remaining in queue: ${batchQueue.length})`);
+              processBatch(nextBatch);
+            }
+          }
         }
       };
 
@@ -207,12 +218,14 @@ export class BatchProcessor extends EventEmitter {
         .on("data", (data: CSVRow) => {
           currentBatch.push(data);
           totalRows++;
-
           if (currentBatch.length >= this.config.batchSize) {
             const batchToProcess = [...currentBatch];
             currentBatch = [];
 
+            // if the number of active promises is greater than the max concurrency, queue the batch
             if (activePromises >= this.config.maxConcurrency) {
+              batchQueue.push(batchToProcess);
+              logger.info(`📊 Queueing batch ${batchesProcessed + 1} (queue size: ${batchQueue.length})`);
               return;
             }
 
@@ -223,6 +236,15 @@ export class BatchProcessor extends EventEmitter {
         .on("end", async () => {
           if (currentBatch.length > 0) {
             await processBatch(currentBatch);
+          }
+
+          // process the remaining batches in the queue
+          while (batchQueue.length > 0) {
+            const nextBatch = batchQueue.shift();
+            if (nextBatch) {
+              activePromises++;
+              await processBatch(nextBatch);
+            }
           }
 
           while (activePromises > 0) {
@@ -276,88 +298,85 @@ export class BatchProcessor extends EventEmitter {
         // Pre-ensure franchisors, agencies, and locations exist (outside transaction to avoid deadlocks)
         
         // Insert franchisors first
-        // logger.info('Inserting franchisors...');
-        // for (const franchisor of franchisors) {
-        //   try {
-        //     await this.db.franchisor.upsert({
-        //       where: { franchisorId: franchisor.franchisorId },
-        //       update: {},
-        //       create: {
-        //         franchisorId: franchisor.franchisorId,
-        //         name: franchisor.name,
-        //       },
-        //     });
-        //   } catch (error) {
-        //     // If upsert fails, try to find existing record
-        //     const existing = await this.db.franchisor.findUnique({
-        //       where: { franchisorId: franchisor.franchisorId }
-        //     });
-        //     if (!existing) {
-        //       logger.error(`Failed to create franchisor ${franchisor.franchisorId}:`, error);
-        //       throw error;
-        //     }
-        //   }
-        // }
+        logger.info('Inserting franchisors...');
+        for (const franchisor of franchisors) {
+          try {
+            await this.db.franchisor.upsert({
+              where: { franchisorId: franchisor.franchisorId },
+              update: {},
+              create: {
+                franchisorId: franchisor.franchisorId,
+                name: franchisor.name,
+              },
+            });
+          } catch (error) {
+            // If upsert fails, try to find existing record
+            const existing = await this.db.franchisor.findUnique({
+              where: { franchisorId: franchisor.franchisorId }
+            });
+            if (!existing) {
+              logger.error(`Failed to create franchisor ${franchisor.franchisorId}:`, error);
+            }
+          }
+        }
 
-        // // Insert agencies
-        // logger.info('Inserting agencies...');
-        // for (const agency of agencies) {
-        //   try {
-        //     await this.db.agency.upsert({
-        //       where: { 
-        //         agencyId_franchisorId: {
-        //           agencyId: agency.agencyId,
-        //           franchisorId: agency.franchisorId
-        //         }
-        //       },
-        //       update: {},
-        //       create: {
-        //         agencyId: agency.agencyId,
-        //         name: agency.name,
-        //         franchisorId: agency.franchisorId,
-        //         subdomain: agency.subdomain,
-        //       },
-        //     });
-        //   } catch (error) {
-        //     // If upsert fails, try to find existing record using the composite key
-        //     const existing = await this.db.agency.findUnique({
-        //       where: { 
-        //         agencyId_franchisorId: {
-        //           agencyId: agency.agencyId,
-        //           franchisorId: agency.franchisorId
-        //         }
-        //       }
-        //     });
-        //     if (!existing) {
-        //       logger.error(`Failed to create agency ${agency.agencyId}:`, error);
-        //       throw error;
-        //     }
-        //   }
-        // }
+        // Insert agencies
+        logger.info('Inserting agencies...');
+        for (const agency of agencies) {
+          try {
+            await this.db.agency.upsert({
+              where: { 
+                agencyId_franchisorId: {
+                  agencyId: agency.agencyId,
+                  franchisorId: agency.franchisorId
+                }
+              },
+              update: {},
+              create: {
+                agencyId: agency.agencyId,
+                name: agency.name,
+                franchisorId: agency.franchisorId,
+                subdomain: agency.subdomain,
+              },
+            });
+          } catch (error) {
+            // If upsert fails, try to find existing record using the composite key
+            const existing = await this.db.agency.findUnique({
+              where: { 
+                agencyId_franchisorId: {
+                  agencyId: agency.agencyId,
+                  franchisorId: agency.franchisorId
+                }
+              }
+            });
+            if (!existing) {
+              logger.error(`Failed to create agency ${agency.agencyId}:`, error);
+            }
+          }
+        }
 
-        // // Insert locations
-        // logger.info('Inserting locations...');
-        // for (const location of locations) {
-        //   try {
-        //     await this.db.location.upsert({
-        //       where: { locationId: location.locationId },
-        //       update: {},
-        //       create: {
-        //         locationId: location.locationId,
-        //         locationName: location.locationName,
-        //       },
-        //     });
-        //   } catch (error) {
-        //     // If upsert fails, try to find existing record
-        //     const existing = await this.db.location.findUnique({
-        //       where: { locationId: location.locationId }
-        //     });
-        //     if (!existing) {
-        //       logger.error(`Failed to create location ${location.locationId}:`, error);
-        //       throw error;
-        //     }
-        //   }
-        // }
+        // Insert locations
+        logger.info('Inserting locations...');
+        for (const location of locations) {
+          try {
+            await this.db.location.upsert({
+              where: { locationId: location.locationId },
+              update: {},
+              create: {
+                locationId: location.locationId,
+                locationName: location.locationName,
+              },
+            });
+          } catch (error) {
+            // If upsert fails, try to find existing record
+            const existing = await this.db.location.findUnique({
+              where: { locationId: location.locationId }
+            });
+            if (!existing) {
+              logger.error(`Failed to create location ${location.locationId}:`, error);
+            }
+          }
+        }
 
         // Check for existing caregivers to understand duplicate situation
         const caregiverIds = caregivers.map(c => c.caregiverId).sort(); // Consistent ordering
@@ -505,7 +524,7 @@ export class BatchProcessor extends EventEmitter {
         }
         
         // If it's not a deadlock or we've exhausted retries, throw the error
-        throw error;
+        logger.error(`❌Error inserting caregivers:`, error);
       }
     }
 
