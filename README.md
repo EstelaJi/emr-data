@@ -181,3 +181,7 @@ emr-data-pipeline/
 - **Data Processing**: Custom ETL pipeline with validation
 
 This platform provides healthcare agencies with comprehensive insights into caregiver performance, enabling data-driven workforce management and quality improvement initiatives.
+
+
+## Loom Link
+   https://www.loom.com/share/536d5580c4444b4eb7d7e3268bf8b564?sid=567be835-fc43-43b0-aef6-d47213bb9084
